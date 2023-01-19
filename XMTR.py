@@ -317,7 +317,7 @@ class MTR:
     local_error = 2 * abs(self.allowed_error)
     keep_pids = []
 
-    while np.all(local_error > abs(self.allowed_error)) and k <= size_of_ar:
+    while np.any(local_error > abs(self.allowed_error)) and k <= size_of_ar:
       feature_set = set()
       for i in range(0, k):
         feature_set.add(antecedents[i])
@@ -357,7 +357,7 @@ class MTR:
       k += 1
 
     # reset
-    if np.all(local_error > abs(self.allowed_error)) and k > size_of_ar:  
+    if np.any(local_error > abs(self.allowed_error)) and k > size_of_ar:  
       keep_pids = []
       reduced_rules = []
       reduced_probabilities = []
