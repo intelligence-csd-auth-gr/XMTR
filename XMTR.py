@@ -14,7 +14,7 @@ from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 
 
 class MTR:
-  def __init__(self, X_train, X_test, y_train, y_test, feature_names=None, target_names=None):  
+  def __init__(self, model=None, X_train=None, X_test=None, y_train=None, y_test=None, feature_names=None, target_names=None):  
     """Init function
         Args:
             model: The trained RF model
@@ -30,10 +30,37 @@ class MTR:
             min_max_feature_values: A helping dictionary for the path/feature reduction process
             ranked_features: The features ranked based on SHAP Values (Small-Medium Datasets) or Feature Importance (Huge Datasets)
     """
+    if X_train is None or X_test is None or y_train is None or y_test is None:
+      print("non specified data")
+    if feature_names is None:
+      print("non specified features names")
+    if target_names is None:
+      print("non specified target names")
+
     self.trainData = X_train
     self.X_test = X_test
     self.y_train = y_train
     self.y_test = y_test
+
+    if model is not None:
+      self.model = model
+    else:
+      # add gridsearch
+      parameters = [{
+         'criterion': ['squared_error'],#, 'absolute_error'],
+         #'max_depth': [2],#, 2, 5],   ----> if it does not extend fully, it may have an issue
+         'max_features': ['sqrt'],#, 'log2', 0.75, None],
+         'min_samples_leaf' : [1, 2, 5, 10]
+      }]
+      RF = RandomForestRegressor(n_estimators=100, n_jobs=-1, random_state=42)
+      clf = GridSearchCV(estimator=RF, param_grid=parameters, cv=10, n_jobs=-1, verbose=0, scoring='neg_mean_absolute_error')
+      clf.fit(self.trainData, self.y_train)
+      RF = clf.best_estimator_
+      self.model = RF
+    self.allowed_error = 0
+    self.amountOfReduction = None
+    self.trees = self.model.estimators_  # model is never None
+    self.predicted = self.model.predict(self.X_test)
     self.feature_names = feature_names
     self.target_names = target_names
     if target_names is not None:
@@ -41,11 +68,44 @@ class MTR:
     self.silly_local_importance = {} # It will fill in only if AR reduction will be applied!
     self.min_max_feature_values = {}
     self.ranked_features = {}
+    self.feature_rule_limits = {} # for testing
+    self.decisions_and_erros = [] # for testing
+    
+
+  def getModel(self):
+    if self.model is not None:
+      return self.model
+    print("you should define the model first")
+
+  def getAllowedError(self):
+    return self.allowed_error
+
+  # for testing
+  def getFeatureLimits(self):
+    return self.feature_rule_limits
+
+  # for testing
+  def getDecisionsAndErros(self):
+    return self.decisions_and_erros
+
+  def getAmountOfReduction(self):
+    return self.amountOfReduction
+
+  def fitError(self, allowed_error=None):
+    # if error is int, create array of 1xself.targets with the same error
+    # if error is list of len=1, the final errors on the rule will average less than the error
+    # if error is list with len=self.targets, the final errors on the rule will be less than the respective error
+    if allowed_error is not None:
+      if type(allowed_error) == int:
+        self.allowed_error = np.array([allowed_error] * self.targets)
+      else:
+         self.allowed_error = np.array(allowed_error)
+    else:
+      self.allowed_error = mean_absolute_error(self.predicted, self.y_test, multioutput="raw_values")
 
   def explain(self, instance, allowed_error=None):
-
     # fit the model
-    self.fit(allowed_error)
+    self.fitError(allowed_error)
 
     rules, predictions = self.label_paths(instance) # ranges=rules
 
@@ -54,37 +114,12 @@ class MTR:
 
     # reduce the rules
     reduced_rules, reduced_probabilities, local_error = self._reduce_through_association_rules(rules, predictions)
-    print("reduced_rules: ", len(reduced_rules), "/", len(rules))
+    self.amountOfReduction = [len(reduced_rules), len(rules)]
 
     # compose the final rule
     return self.composeRule(instance, reduced_rules, local_error)
 
 
-  def fit(self, allowed_error=None):
-    model = RandomForestRegressor(n_estimators=100, bootstrap = False,  n_jobs=-1, random_state=42)
-    model.fit(self.trainData, self.y_train)
-    predicted = model.predict(self.X_test)
-
-    self.model = model
-    self.trees = None
-    if model is not None:
-      self.trees = model.estimators_
-
-    # if error is int, create array of 1xself.targets with the same error
-    # if error is list of len=1, the final errors on the rule will average less than the error
-    # if error is list with len=self.targets, the final errors on the rule will be less than the respective error
-    if allowed_error:
-      if type(allowed_error) == int:
-        self.allowed_error = np.array([allowed_error] * self.targets)
-      else:
-         self.allowed_error = np.array(allowed_error)
-    else:
-      self.allowed_error = mean_absolute_error(predicted, self.y_test, multioutput="raw_values")
-
-  def getModel(self):
-    if self.model is not None:
-      return self.model
-    print("you should define the model first")
 
   def label_paths(self, instance):
     """label_paths function finds the ranges and predictions for each label
@@ -168,7 +203,7 @@ class MTR:
               min_max_leaf_prediction_per_tree[i][target+len(value)] = value[target]
           if  min_max_leaf_prediction_per_tree[i][target] is None or value[target] < min_max_leaf_prediction_per_tree[i][target]:
               min_max_leaf_prediction_per_tree[i][target] = value[target]
-      self.min_max_leaf_prediction_per_tree = min_max_leaf_prediction_per_tree
+    self.min_max_leaf_prediction_per_tree = min_max_leaf_prediction_per_tree
     return min_max_leaf_prediction_per_tree
 
 
@@ -310,10 +345,9 @@ class MTR:
       for p in pr:
         items.add(p)
     new_feature_list = list(items)
-    reduced_rules = []
-    reduced_probabilities = []
 
-    # give allowed error as argument
+    reduced_rules = []
+    #reduced_probabilities = []
     local_error = 2 * abs(self.allowed_error)
     keep_pids = []
 
@@ -335,7 +369,6 @@ class MTR:
         reduced_probabilities_per_target = []
         flag = True
         for target in range(self.targets):
-
           # in case of no redundant features in the rule
           if sum([1 for j in redundant_features if j in rule]) == 0:
             if flag: # this so the rule is added once per target
@@ -352,7 +385,6 @@ class MTR:
               reduced_probabilities_per_target.append(self.min_max_leaf_prediction_per_tree[pid][target][0])
         pid = pid + 1
         reduced_probabilities.append(reduced_probabilities_per_target)
-      
       local_error = mean_absolute_error(probabilities, reduced_probabilities, multioutput="raw_values")
       k += 1
 
@@ -396,7 +428,6 @@ class MTR:
 
       local_error = mean_absolute_error(probabilities, reduced_probabilities, multioutput="raw_values")
 
-
     if last_pid is not None:
       temp_pids.append(last_pid)
       reduced_rules = []
@@ -421,9 +452,7 @@ class MTR:
         reduced_probabilities.append(reduced_probabilities_per_target)
 
       local_error = mean_absolute_error(probabilities, reduced_probabilities, multioutput="raw_values")
-    
     local_error = mean_absolute_error(probabilities, reduced_probabilities, multioutput="raw_values")
-
     return reduced_rules, reduced_probabilities, local_error
 
 
@@ -467,7 +496,8 @@ class MTR:
     rule = "if "
     temp_f_mins = {}
     temp_f_maxs = {}
-    feature_rule_limits = {}
+    self.feature_rule_limits = {}
+    self.decisions_and_erros = []
 
     # get the features that appear on the reduced rules
     items = set()
@@ -501,9 +531,11 @@ class MTR:
     if local_error is not None:
       for tar in range(len(self.target_names)):
         decision[self.target_names[tar]] = self.target_names[tar] + ': ' + str(round(pred[tar], 4)) + " +/- " + str(round(local_error[tar], 4)) + " error"
+        self.decisions_and_erros.append([pred[tar], local_error[tar]])
     else:
       for tar in range(len(self.target_names)):
         decision[self.target_names[tar]] = self.target_names[tar] + ': ' + str(round(pred[tar], 4))
+        self.decisions_and_erros.append([pred[tar], 0])
     # we only use this for reference on the ranked features below, its the same for all targets
     target_name = self.target_names[0]
 
@@ -521,105 +553,10 @@ class MTR:
       if self.feature_names[f] in local_feature_names:
         mmi = np.array([f_mins, f_mins])[0][f]
         mma = np.array([f_maxs, f_maxs])[0][f]  # ena tab mesa
-        feature_rule_limits[self.feature_names[f]] = [mmi, mma]
+        self.feature_rule_limits[self.feature_names[f]] = [mmi, mma]
         rule = rule + str(round(mmi, 3)) + "<=" + self.feature_names[f] + "<=" + str(round(mma, 3)) + " & "
 
     rule = rule[:-3] + " then "
     for key in decision.keys():
       rule += decision[key] + ", "
     return rule[:-2]
-
-class GlobalSurrogateTree:
-    def __init__(self, x, y, feature_names, random_state=10):
-        
-        self.feature_names = feature_names
-        
-        dtree = DecisionTreeRegressor(random_state = random_state)
-        parameters = [{
-            'criterion': ['mse', 'mae'],#, 'poisson'],
-            'splitter': ['best','random'],
-            'max_depth': [1, 2, 5],#, 10, None],
-            'max_features': ['sqrt', 'log2', 0.75, None],#['sqrt', 'log2', 0.75, None], #'sqrt', 'log2', 0.75, None
-            'min_samples_leaf' : [1, 2, 5, 10],#[1, 2, 5, 10, 0.10], #1, 2, 5, 10, 0.10
-        }]
-        clf = GridSearchCV(estimator=dtree, param_grid=parameters, cv=10, n_jobs=-1, verbose=0, scoring='neg_mean_absolute_error')
-        clf.fit(x, y)
-        self.accuracy = clf.best_score_
-        self.model = clf.best_estimator_
-        
-    def rule(self,instance):
-        path = self.model.decision_path([instance])
-        leq = {}  # leq: less equal ex: x <= 1
-        b = {}  # b: bigger ex: x > 0.6
-        local_range = {}
-        for node in path.indices:
-            feature_id = self.model.tree_.feature[node]
-            feature = self.feature_names[feature_id]
-            threshold = self.model.tree_.threshold[node]
-            if threshold != -2.0:
-                if instance[feature_id] <= threshold:
-                    leq.setdefault(feature, []).append(threshold)
-                else:
-                    b.setdefault(feature, []).append(threshold)
-        for k in leq:
-            local_range.setdefault(k, []).append(['<=', min(leq[k])])  # !!
-        for k in b:
-            local_range.setdefault(k, []).append(['>', max(b[k])])  # !!
-        return local_range, self.model.predict([instance])[0]
-
-
-class LocalSurrogateTree:
-    def __init__(self, x, y, feature_names, neighbours=None, random_state=10):
-        self.x = x
-        self.y = y
-        self.neighbours = neighbours
-        if neighbours is None:
-            self.neighbour = int(len(x)/10)
-        self.feature_names = feature_names
-        
-        neighbours_generator = KNeighborsRegressor(n_neighbors=self.neighbours, weights="distance", metric="minkowski", p=2)
-        neighbours_generator.fit(self.x, self.y)
-        self.neighbours_generator = neighbours_generator
-        dtree = DecisionTreeRegressor(random_state = random_state)
-        parameters = [{
-            'criterion': ['mse', 'mae'],
-            'splitter': ['best','random'],
-            'max_depth': [1, 2, 5],#, 10, None],
-            'max_features': ['sqrt', 'log2', 0.75, None],#['sqrt', 'log2', 0.75, None], #'sqrt', 'log2', 0.75, None
-            'min_samples_leaf' : [1, 2, 5, 10],#[1, 2, 5, 10, 0.10], #1, 2, 5, 10, 0.10
-        }]
-        self.clf = GridSearchCV(estimator=dtree, param_grid=parameters, cv=10, n_jobs=-1, verbose=0, scoring='neg_mean_absolute_error')
-
-    def _generate_neighbours(self,instance):
-        x = [instance]
-        ys = self.neighbours_generator.kneighbors(self.x, n_neighbors=self.neighbours, return_distance=False)
-        new_x_train = []
-        new_y_train = []
-        for i in ys[0]:
-            new_x_train.append(self.x[i])
-            new_y_train.append(self.y[i])
-        return new_x_train, new_y_train
-    
-    def rule(self,instance):
-        local_x, local_y = self._generate_neighbours(instance)
-        self.clf.fit(local_x, local_y)
-        model = self.clf.best_estimator_
-        
-        path = model.decision_path([instance])
-        leq = {}  # leq: less equal ex: x <= 1
-        b = {}  # b: bigger ex: x > 0.6
-        local_range = {}
-        for node in path.indices:
-            feature_id = model.tree_.feature[node]
-            feature = self.feature_names[feature_id]
-            threshold = model.tree_.threshold[node]
-            if threshold != -2.0:
-                if instance[feature_id] <= threshold:
-                    leq.setdefault(feature, []).append(threshold)
-                else:
-                    b.setdefault(feature, []).append(threshold)
-        for k in leq:
-            local_range.setdefault(k, []).append(['<=', min(leq[k])])  # !!
-        for k in b:
-            local_range.setdefault(k, []).append(['>', max(b[k])])  # !!
-        return local_range, model.predict([instance])[0]
