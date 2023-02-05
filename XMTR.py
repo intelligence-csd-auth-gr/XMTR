@@ -70,6 +70,7 @@ class MTR:
     self.ranked_features = {}
     self.feature_rule_limits = {} # for testing
     self.decisions_and_erros = [] # for testing
+    self.find_regression_trees_min_maxes(self.feature_names)
     
 
   def getModel(self):
@@ -110,7 +111,7 @@ class MTR:
     rules, predictions = self.label_paths(instance) # ranges=rules
 
     # find min/max of all leaves per tree
-    minmax = self.find_regression_trees_min_maxes(self.feature_names)
+    #minmax = self.find_regression_trees_min_maxes(self.feature_names)
 
     # reduce the rules
     reduced_rules, reduced_probabilities, local_error = self._reduce_through_association_rules(rules, predictions)
