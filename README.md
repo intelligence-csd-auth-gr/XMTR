@@ -66,3 +66,4 @@ Name | Email
 3. [Altruist](https://github.com/iamollas/Altruist): Argumentative Explanations through Local Interpretations of Predictive Models
 4. [VisioRed](https://github.com/intelligence-csd-auth-gr/Interpretable-Predictive-Maintenance/tree/master/VisioRed%20Demo): Interactive UI Tool for Interpretable Time Series Forecasting called VisioRed
 5. [Meta-Explanations](https://github.com/iamollas/TMX-TruthfulMetaExplanations): Truthful Meta-Explanations for Local Interpretability of Machine Learning Models
+6. [LXDR](https://github.com/intelligence-csd-auth-gr/Interpretable-Unsupervised-Learning): Local Explanation of Dimensionality Reduction
