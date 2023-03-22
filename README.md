@@ -28,23 +28,6 @@ lf.fit_trained(X, y) #however, LF needs few statistics to be extracted from trai
 print("Prediction and interpretation rule:", lf.explain(instance)[0]) 
 ```
 
-## How to save and reuse
-```python
-#Use one of the above examples to build your LF instance
-... lf
-
-import pickle
-#Save the whole LF instance, which contains the model and the data statistics (but not the data themselves)
-pickle.dump(lf, open('lf_model.sav','wb'))
-...
-
-#Load the LF instance
-lf = pickle.load(open('lf_model.sav','rb'))
-
-#Ready to interpret using .explain function!
-print("Prediction and interpretation rule:", lf.explain(instance)[0]) 
-```
-
 ## Citation
 Please cite the paper if you use it in your work or experiments :D :
 
