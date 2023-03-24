@@ -15,7 +15,8 @@ X_train, X_test, y_train, y_test = split_your_data(X, y)
 xmtr = MTR(None, X_train, X_test, y_train, y_test, feature_names, target_names) # None means that no RF model is provided, gridsearch on a random forest regressor will be applied.
 
 # ready to interpret using .explain function!
-print("Prediction and interpretation rule:", xmtr.explain(instance, None)) # None means that allowed error will be set automatically according to the performance of the rf on the test data.
+# None means that allowed error will be set automatically according to the performance of the rf on the test data.
+print("Prediction and interpretation rule:", xmtr.explain(instance, None)) 
 ```
 
 ## Example #2
@@ -25,7 +26,8 @@ X_train, X_test, y_train, y_test = split_your_data(X, y)
 xmtr = MTR(rf_model, X_train, X_test, y_train, y_test, feature_names, target_names) #now we provide a model.
 
 # ready to interpret using .explain function!
-# here allowed error is set to be equal to 1 for all targets. You can also set a particular allowed error for each individual target by parsing a list of errors, e.g. [0.5, 0.7, 0.3] in a 3-target regression problem.
+# here allowed error is set to be equal to 1 for all targets. You can also set a particular allowed error 
+# for each individual target by parsing a list of errors, e.g. [0.5, 0.7, 0.3] in a 3-target regression problem.
 print("Prediction and interpretation rule:",xmtr.explain(instance, 1)) 
 ```
 
