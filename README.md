@@ -10,22 +10,23 @@ Multi-target regression is useful in a plethora of applications. Although random
 
 ## Example #1
 ```python
-X, y, feature_names, class_names = load_your_data()
-lf = LionForests(None, False, None, feature_names, class_names) #first none means that no RF model is provided, second none means no scaling
-lf.fit(X, y) #will grid search to find the best RF for your data
+X, y, feature_names, target_names = load_your_data()
+X_train, X_test, y_train, y_test = split_your_data(X, y)
+xmtr = MTR(None, X_train, X_test, y_train, y_test, feature_names, target_names) # None means that no RF model is provided, gridsearch on a random forest regressor will be applied.
 
-#ready to interpret using .explain function!
-print("Prediction and interpretation rule:", lf.explain(instance)[0]) 
+# ready to interpret using .explain function!
+print("Prediction and interpretation rule:", xmtr.explain(instance, None)) # None means that allowed error will be set automatically according to the performance of the rf on the test data.
 ```
 
 ## Example #2
 ```python
-X, y, feature_names, class_names = load_your_data()
-lf = LionForests(rf_model, True, None, feature_names, class_names) #now we provide a model
-lf.fit_trained(X, y) #however, LF needs few statistics to be extracted from training data
+X, y, feature_names, target_names = load_your_data()
+X_train, X_test, y_train, y_test = split_your_data(X, y)
+xmtr = MTR(rf_model, X_train, X_test, y_train, y_test, feature_names, target_names) #now we provide a model.
 
-#ready to interpret using .explain function!
-print("Prediction and interpretation rule:", lf.explain(instance)[0]) 
+# ready to interpret using .explain function!
+# here allowed error is set to be equal to 1 for all targets. You can also set a particular allowed error for each individual target by parsing a list of errors, e.g. [0.5, 0.7, 0.3] in a 3-target regression problem.
+print("Prediction and interpretation rule:",xmtr.explain(instance, 1)) 
 ```
 
 ## Citation
