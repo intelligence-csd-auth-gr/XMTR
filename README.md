@@ -35,7 +35,7 @@ print("Prediction and interpretation rule:",xmtr.explain(instance, 1))
 Please cite the paper if you use it in your work or experiments :D :
 
 - [Conference] :
-    - TBA, available on arxiv as well
+    - Arxiv Version: https://arxiv.org/abs/2303.16506
 
 ## Contributors on LionForests
 Name | Email
