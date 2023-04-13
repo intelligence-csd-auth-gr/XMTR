@@ -30,26 +30,3 @@ xmtr = MTR(rf_model, X_train, X_test, y_train, y_test, feature_names, target_nam
 # for each individual target by parsing a list of errors, e.g. [0.5, 0.7, 0.3] in a 3-target regression problem.
 print("Prediction and interpretation rule:",xmtr.explain(instance, 1)) 
 ```
-
-## Citation
-Please cite the paper if you use it in your work or experiments :D :
-
-- [Conference] :
-    - Arxiv Version: https://arxiv.org/abs/2303.16506
-
-## Contributors on LionForests
-Name | Email
---- | ---
-[Avraam Bardos](url) | ampardosl@csd.auth.gr
-[Nikolaos Mylonas](https://intelligence.csd.auth.gr/people/people-nikos-mylonas-phd-student/) | myloniko@csd.auth.gr
-[Ioannis Mollas](https://intelligence.csd.auth.gr/people/ioannis-mollas/) | iamollas@csd.auth.gr
-[Grigorios Tsoumakas](https://intelligence.csd.auth.gr/people/tsoumakas/) | greg@csd.auth.gr
-
-## See our Work
-[LionLearn Interpretability Library](https://github.com/intelligence-csd-auth-gr/LionLearn) containing: 
-1. [LionForests](https://github.com/intelligence-csd-auth-gr/LionLearn/tree/master/LionForests): Conclusive Local Interpretation Rules for Random Forests through LionForests
-2. [LioNets](https://github.com/intelligence-csd-auth-gr/LionLearn/tree/master/LioNets_V2): LioNets: A Neural-Specific Local Interpretation Technique Exploiting Penultimate Layer Information
-3. [Altruist](https://github.com/iamollas/Altruist): Argumentative Explanations through Local Interpretations of Predictive Models
-4. [VisioRed](https://github.com/intelligence-csd-auth-gr/Interpretable-Predictive-Maintenance/tree/master/VisioRed%20Demo): Interactive UI Tool for Interpretable Time Series Forecasting called VisioRed
-5. [Meta-Explanations](https://github.com/iamollas/TMX-TruthfulMetaExplanations): Truthful Meta-Explanations for Local Interpretability of Machine Learning Models
-6. [LXDR](https://github.com/intelligence-csd-auth-gr/Interpretable-Unsupervised-Learning): Local Explanation of Dimensionality Reduction
